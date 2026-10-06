@@ -133,14 +133,46 @@ public class DocumentService {
             DocumentAccessRequest request = byId.get(document.getPublicId());
             document.setVisibility(request.visibility());
             document.setAllowedRoles(request.visibility() == Visibility.ROLES ? joinRoles(request.roles()) : null);
+            document.setSyncedOn(now);
         }
 
         for (StoredDocument existing : repository.findByOwnerServiceAndOwnerIdAndDeletedFalse(ownerService, ownerId)) {
             if (!byId.containsKey(existing.getPublicId())) {
-                remove(existing);
+                existing.setVisibility(Visibility.PRIVATE);
+                existing.setAllowedRoles(null);
+                existing.setSyncedOn(now);
             }
         }
         return found;
+    }
+
+    @Transactional(readOnly = true)
+    public List<StoredDocument> findAttachedSyncedBefore(String ownerService, Instant before) {
+        if (ownerService == null || ownerService.isBlank() || before == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_REQUEST");
+        }
+        return repository.findAttachedSyncedBefore(ownerService, before);
+    }
+
+    @Transactional
+    public int removeOwned(String ownerService, String ownerId, Collection<String> publicIds) {
+        if (ownerService == null || ownerService.isBlank() || ownerId == null || ownerId.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_REQUEST");
+        }
+        if (publicIds == null || publicIds.isEmpty()) {
+            return 0;
+        }
+        int removed = 0;
+        for (StoredDocument document : repository.findByPublicIdInAndDeletedFalse(publicIds)) {
+            if (ownerService.equals(document.getOwnerService()) && ownerId.equals(document.getOwnerId())) {
+                remove(document);
+                removed++;
+            }
+        }
+        if (removed > 0) {
+            logger.info("Removed {} documents no longer used by {} {}", removed, ownerService, ownerId);
+        }
+        return removed;
     }
 
     @Scheduled(fixedDelayString = "PT1H", initialDelayString = "PT5M")

@@ -55,6 +55,9 @@ public class StoredDocument {
     @Column(name = "is_deleted", nullable = false)
     private Boolean deleted = Boolean.FALSE;
 
+    @Column(name = "synced_on")
+    private Instant syncedOn;
+
     public Long getId() { return id; }
     public String getPublicId() { return publicId; }
     public void setPublicId(String publicId) { this.publicId = publicId; }
@@ -76,6 +79,8 @@ public class StoredDocument {
     public void setOwnerId(String ownerId) { this.ownerId = ownerId; }
     public Instant getAttachedOn() { return attachedOn; }
     public void setAttachedOn(Instant attachedOn) { this.attachedOn = attachedOn; }
+    public Instant getSyncedOn() { return syncedOn; }
+    public void setSyncedOn(Instant syncedOn) { this.syncedOn = syncedOn; }
     public Visibility getVisibility() { return visibility; }
     public void setVisibility(Visibility visibility) { this.visibility = visibility; }
     public String getAllowedRoles() { return allowedRoles; }
